@@ -22,6 +22,7 @@ class ViewController: UIViewController {
     
     func drawLine() -> UIImage {
         // イメージ処理の開始
+        UIGraphicsGetCurrentContext()
         let size = view.bounds.size
         UIGraphicsBeginImageContextWithOptions(size, false, 1)
         let persent = 58.2
