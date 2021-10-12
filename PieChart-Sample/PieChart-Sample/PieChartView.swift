@@ -12,13 +12,13 @@ class PieChartView: UIView, CAAnimationDelegate {
     struct Pie {
         let layer: CAShapeLayer
         let duration: CFTimeInterval
-        let label: UILabel?
+        let label: UILabel? // 項目の割合が小さい場合はラベルを表示しないためオプショナル
     }
 
     private var count = 0 // 実行中のアニメーションレイヤー
     private var pies: [Pie] = []
     private var size: CGFloat! // frameの短い辺
-    private var radius: CGFloat!
+    private var radius: CGFloat! // arcPathの半径
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -49,7 +49,7 @@ class PieChartView: UIView, CAAnimationDelegate {
             let arcPath = createArcPath(startAngle: startAngle, endAngle: angle)
             let layer = createCAShapeLayer(path: arcPath, storokeColor: $0.color.cgColor)
 
-            // angleRateが小さい場合はラベルは作らない
+            // angleRateが小さい場合はラベルを作らない
             var label: UILabel?
             if angleRate > Double(22 / size) {
                 label = createCategoryLabel(category: $0.category, balance: $0.balance,
@@ -100,7 +100,7 @@ class PieChartView: UIView, CAAnimationDelegate {
         return shapeLayer
     }
 
-    // アニメーションを作成
+    // アニメーションを反映
     private func addCABasicAnimation(layer: CAShapeLayer, duration: CFTimeInterval) {
         let animation = CABasicAnimation(keyPath: #keyPath(CAShapeLayer.strokeEnd))
         animation.duration = duration
@@ -110,7 +110,7 @@ class PieChartView: UIView, CAAnimationDelegate {
         layer.add(animation, forKey: #keyPath(CAShapeLayer.strokeEnd))
     }
 
-    // グラフ中央のTotalラベルを作成
+    // グラフ中央のTotalラベルを反映
     private func addTotalLabel(text: String) {
         let label = UILabel(frame: CGRect(x: 0, y: 0, width: (size / 3) - 10, height: 50))
         label.textAlignment = NSTextAlignment.center
@@ -139,18 +139,12 @@ class PieChartView: UIView, CAAnimationDelegate {
         let angle = (endAngle - startAngle) / 2 + startAngle
         let x = cos(angle) * radius
         let y = sin(angle) * radius
-        switch angle {
-        case -Double.pi / 2...Double.pi / 2 * 3:
-            return CGPoint(x: Double(size / 2) + x, y: Double(size / 2) + y)
-        default:
-            fatalError("想定していない値")
-        }
+        return CGPoint(x: Double(size / 2) + x, y: Double(size / 2) + y)
     }
 
     // MARK: - CAAnimationDelegate
     func animationDidStop(_ anim: CAAnimation, finished flag: Bool) {
         count += 1
-        print("💣")
         if count < pies.count {
             // アニメーションを実行
             addCABasicAnimation(layer: pies[count].layer, duration: pies[count].duration)
