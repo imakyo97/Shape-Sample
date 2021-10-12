@@ -12,7 +12,7 @@ class PieChartView: UIView, CAAnimationDelegate {
     struct Pie {
         let layer: CAShapeLayer
         let duration: CFTimeInterval
-        let label: UILabel
+        let label: UILabel?
     }
 
     private var count = 0 // 実行中のアニメーションレイヤー
@@ -48,8 +48,14 @@ class PieChartView: UIView, CAAnimationDelegate {
             let angle = Double.pi * 2 * angleRate + startAngle
             let arcPath = createArcPath(startAngle: startAngle, endAngle: angle)
             let layer = createCAShapeLayer(path: arcPath, storokeColor: $0.color.cgColor)
-            let label = createCategoryLabel(category: $0.category, balance: $0.balance,
+
+            // angleRateが小さい場合はラベルは作らない
+            var label: UILabel?
+            if angleRate > Double(22 / size) {
+                label = createCategoryLabel(category: $0.category, balance: $0.balance,
                                             startAngle: startAngle, endAngle: angle)
+            }
+
             pies.append(
                 Pie(layer: layer, duration: Double(angleRate / 4), label: label)
             )
@@ -61,7 +67,9 @@ class PieChartView: UIView, CAAnimationDelegate {
         layer.addSublayer(pies[count].layer)
 
         // 最初のラベルを反映
-        addSubview(pies[count].label)
+        if let label = pies[count].label {
+            addSubview(label)
+        }
 
         // グラフ中央のラベルを作成
         // TODO: NumberFormatterで実装
@@ -104,10 +112,10 @@ class PieChartView: UIView, CAAnimationDelegate {
 
     // グラフ中央のTotalラベルを作成
     private func addTotalLabel(text: String) {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: (size / 3) - 10, height: 17))
+        let label = UILabel(frame: CGRect(x: 0, y: 0, width: (size / 3) - 10, height: 50))
         label.textAlignment = NSTextAlignment.center
         label.numberOfLines = 0
-        label.font = UIFont.systemFont(ofSize: 14)
+        label.font = UIFont.boldSystemFont(ofSize: 17)
         label.text = text
         label.center = CGPoint(x: size / 2, y: size / 2)
         addSubview(label)
@@ -148,7 +156,9 @@ class PieChartView: UIView, CAAnimationDelegate {
             addCABasicAnimation(layer: pies[count].layer, duration: pies[count].duration)
             layer.addSublayer(pies[count].layer)
             // ラベルを反映
-            addSubview(pies[count].label)
+            if let label = pies[count].label {
+                addSubview(label)
+            }
         }
     }
 }

@@ -20,9 +20,9 @@ class ViewController: UIViewController {
     }
 
     private let graphDataArray: [GraphData] = [
-        GraphData(category: "飲食費", color: .red, balance: 1000),
-        GraphData(category: "医療費", color: .blue, balance: 200),
-        GraphData(category: "交通費", color: .green, balance: 2000)
+        GraphData(category: "飲食費", color: .red, balance: 100),
+        GraphData(category: "医療費", color: .blue, balance: 400),
+        GraphData(category: "交通費", color: .green, balance: 3000)
     ]
 
     @IBAction func didTapButton(_ sender: Any) {
