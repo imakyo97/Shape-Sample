@@ -11,7 +11,7 @@ class PieChartView: UIView, CAAnimationDelegate {
 
     struct Pie {
         let layer: CAShapeLayer
-        let duration: CGFloat
+        let duration: CFTimeInterval
     }
 
     private var count = 0 // 実行中のアニメーションレイヤー
@@ -33,22 +33,23 @@ class PieChartView: UIView, CAAnimationDelegate {
         // 初期化の処理
         count = 0
         layer.sublayers?.forEach { $0.removeFromSuperlayer() }
+        pies.removeAll()
 
         // レイヤーを作成
         let totalBalance = data.reduce(0) { $0 + $1.balance }
-        var startAngle = CGFloat(-Double.pi / 4 * 1)
+        var startAngle = CGFloat(-Double.pi / 2)
         data.sorted { $0.balance > $1.balance}
         .forEach {
             let angleRate = Double($0.balance) / Double(totalBalance)
             let angle = CGFloat(Double.pi * 2 * angleRate) + startAngle
             let arcPath = createArcPath(startAngle: startAngle, endAngle: angle)
             let layer = createCAShapeLayer(path: arcPath, storokeColor: $0.color.cgColor)
-            pies.append(Pie(layer: layer, duration: angle))
+            pies.append(Pie(layer: layer, duration: Double(angleRate / 4)))
             startAngle = angle
         }
 
         // 最初のアニメーション実行
-        addCABasicAnimation(layer: pies[count].layer)
+        addCABasicAnimation(layer: pies[count].layer, duration: pies[count].duration)
         layer.addSublayer(pies[count].layer)
     }
 
@@ -77,9 +78,9 @@ class PieChartView: UIView, CAAnimationDelegate {
     }
 
     // アニメーションを作成
-    private func addCABasicAnimation(layer: CAShapeLayer) {
+    private func addCABasicAnimation(layer: CAShapeLayer, duration: CFTimeInterval) {
         let animation = CABasicAnimation(keyPath: #keyPath(CAShapeLayer.strokeEnd))
-        animation.duration = 0.1
+        animation.duration = duration
         animation.fromValue = 0
         animation.toValue = 1
         animation.delegate = self
@@ -91,8 +92,9 @@ class PieChartView: UIView, CAAnimationDelegate {
         count += 1
         print("💣")
         if count < pies.count {
-            addCABasicAnimation(layer: pies[count].layer)
+            print(pies[count].duration)
+            addCABasicAnimation(layer: pies[count].layer, duration: pies[count].duration)
             layer.addSublayer(pies[count].layer)
-        } 
+        }
     }
 }
