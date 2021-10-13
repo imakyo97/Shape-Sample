@@ -23,7 +23,7 @@ final class PieChartView: UIView, CAAnimationDelegate {
     private var largerLineWidth: CGFloat! // 拡大時のグラフの幅
     private var selectedLayer: CAShapeLayer? // 選択されているレイヤー
     private var centerSpace: CGFloat! // グラフ中心のスペース
-    private let duration: Double = 0.25 // グラフが表示されるまでの時間
+    private let duration: TimeInterval = 0.25 // グラフが表示されるまでの時間
     private var totalBalanceText: String! // グラフ中央のtext
 
     // MARK: - init
@@ -102,7 +102,7 @@ final class PieChartView: UIView, CAAnimationDelegate {
         layer.sublayers?.forEach { $0.removeFromSuperlayer() }
         pies.removeAll()
 
-        // Pie配列を作成
+        // Pieの配列を作成
         let totalBalance = data.reduce(0) { $0 + $1.balance }
         var startAngle = -Double.pi / 2
         data.sorted { $0.balance > $1.balance}
@@ -172,13 +172,14 @@ final class PieChartView: UIView, CAAnimationDelegate {
     }
 
     // グラフ中央のViewを反映
-    private func addCenterView(text: String) {
+    private func addCenterView(text: String) -> UIView {
         // センターの丸いviewを作成
         let centerView = UIView(frame: CGRect(x: 0, y: 0, width: centerSpace, height: centerSpace))
         centerView.backgroundColor = .white
         centerView.layer.cornerRadius = centerSpace / 2
         centerView.clipsToBounds = true
         centerView.center = CGPoint(x: size / 2, y: size / 2)
+        centerView.alpha = 0 // フェードのようなアニメーションをするためalphaを0に設定
         // センターに載せるラベルを作成
         let label = UILabel(
             frame: CGRect(x: 0, y: 0, width: centerSpace - 10, height: 42)
@@ -189,7 +190,7 @@ final class PieChartView: UIView, CAAnimationDelegate {
         label.text = text
         label.center = CGPoint(x: centerSpace / 2, y: centerSpace / 2)
         centerView.addSubview(label)
-        addSubview(centerView)
+        return centerView
     }
 
     // グラフの上に載せるラベルを作成
@@ -205,7 +206,7 @@ final class PieChartView: UIView, CAAnimationDelegate {
         return label
     }
 
-    // グラフの上に載せるラベルのセンターを計算
+    // グラフの上に載せるラベルのcenterを計算
     private func calcCenter(startAngle: Double, endAngle: Double) -> CGPoint {
         let angle = (endAngle - startAngle) / 2 + startAngle
         let x = cos(angle) * radius
@@ -229,7 +230,12 @@ final class PieChartView: UIView, CAAnimationDelegate {
         // 全ての実行を終えた時
         if count == pies.count {
             // グラフ中央のviewを反映
-            addCenterView(text: totalBalanceText)
+            let centerView = addCenterView(text: totalBalanceText)
+            addSubview(centerView)
+            // アニメーションで表示
+            UIView.animate(withDuration: 0.2) {
+                centerView.alpha = 1
+            }
         }
     }
 }
