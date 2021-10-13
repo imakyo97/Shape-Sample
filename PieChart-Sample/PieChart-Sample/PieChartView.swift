@@ -19,18 +19,21 @@ class PieChartView: UIView, CAAnimationDelegate {
     private var pies: [Pie] = []
     private var size: CGFloat! // frameの短い辺
     private var radius: CGFloat! // arcPathの半径
+    private var lineWidth: CGFloat! // グラフの線の幅
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.backgroundColor = .white
         size = min(frame.width, frame.height)
-        radius = size / 3
+        radius = size / 8 * 3
+        lineWidth = size / 4
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         size = min(frame.width, frame.height)
-        radius = size / 3
+        radius = size / 8 * 3
+        lineWidth = size / 4
     }
 
     func setupPieChartView(setData data: [GraphData]) {
@@ -95,7 +98,7 @@ class PieChartView: UIView, CAAnimationDelegate {
         let shapeLayer = CAShapeLayer()
         shapeLayer.path = path
         shapeLayer.strokeColor = storokeColor
-        shapeLayer.lineWidth = size / 3
+        shapeLayer.lineWidth = lineWidth
         shapeLayer.fillColor = UIColor.clear.cgColor
         return shapeLayer
     }
@@ -112,9 +115,9 @@ class PieChartView: UIView, CAAnimationDelegate {
 
     // グラフ中央のTotalラベルを反映
     private func addTotalLabel(text: String) {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: (size / 3) - 10, height: 50))
+        let label = UILabel(frame: CGRect(x: 0, y: 0, width: radius - 10, height: 42))
         label.textAlignment = NSTextAlignment.center
-        label.numberOfLines = 0
+        label.numberOfLines = 2
         label.font = UIFont.boldSystemFont(ofSize: 17)
         label.text = text
         label.center = CGPoint(x: size / 2, y: size / 2)
@@ -123,9 +126,9 @@ class PieChartView: UIView, CAAnimationDelegate {
 
     // グラフの上に載せるラベルを作成
     private func createCategoryLabel(category: String, balance: Int, startAngle: Double, endAngle: Double) -> UILabel {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: (size / 3) - 10, height: 50))
+        let label = UILabel(frame: CGRect(x: 0, y: 0, width: lineWidth - 10, height: 51))
         label.textAlignment = NSTextAlignment.center
-        label.numberOfLines = 2
+        label.numberOfLines = 3
         label.font = UIFont.boldSystemFont(ofSize: 14)
         // TODO: NumberFormatterで実装
         label.text = "\(category)\n\(String.localizedStringWithFormat("%d", balance))円"
