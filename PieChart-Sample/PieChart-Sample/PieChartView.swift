@@ -7,7 +7,7 @@
 
 import UIKit
 
-class PieChartView: UIView, CAAnimationDelegate {
+final class PieChartView: UIView, CAAnimationDelegate {
 
     struct Pie {
         let layer: CAShapeLayer
@@ -21,9 +21,10 @@ class PieChartView: UIView, CAAnimationDelegate {
     private var radius: CGFloat! // arcPathの半径
     private var basicLineWidth: CGFloat! // グラフの幅
     private var largerLineWidth: CGFloat! // 拡大時のグラフの幅
-    private var selectedLayer: CAShapeLayer?
+    private var selectedLayer: CAShapeLayer? // 選択されているレイヤー
     private var centerSpace: CGFloat! // グラフ中心のスペース
     private let duration: Double = 0.25 // グラフが表示されるまでの時間
+    private var totalBalanceText: String! // グラフ中央のtext
 
     // MARK: - init
     override init(frame: CGRect) {
@@ -53,8 +54,10 @@ class PieChartView: UIView, CAAnimationDelegate {
         let point = touch!.location(in: self)
         let color = colorOfPoint(point: point)
 
-        // 色がグラフのレイヤーと一致すれば拡大・縮小を行う
+        // piesから色が一致するレイヤーがあれば、取り出す
         guard let layer = pies.filter({ $0.layer.strokeColor == color }).first?.layer else { return }
+
+        // レイヤーの拡大・縮小
         if layer == selectedLayer {
             // すでに選択されている時
             layer.lineWidth = basicLineWidth
@@ -122,6 +125,9 @@ class PieChartView: UIView, CAAnimationDelegate {
             startAngle = angle
         }
 
+        // TODO: NumberFormatterで実装
+        totalBalanceText = String.localizedStringWithFormat("%d", totalBalance) + "円"
+
         // 最初のアニメーション実行
         addCABasicAnimation(layer: pies[count].layer, duration: pies[count].duration)
         layer.addSublayer(pies[count].layer)
@@ -129,14 +135,6 @@ class PieChartView: UIView, CAAnimationDelegate {
         // 最初のラベルを反映
         if let label = pies[count].label {
             addSubview(label)
-        }
-
-        // グラフが表示されてから、グラフ中央のviewを反映
-        // TODO: NumberFormatterで実装
-        let totalString = String.localizedStringWithFormat("%d", totalBalance) + "円"
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
-            guard let self = self else { return }
-            self.addCenterView(text: totalString)
         }
     }
 
@@ -226,6 +224,12 @@ class PieChartView: UIView, CAAnimationDelegate {
             if let label = pies[count].label {
                 addSubview(label)
             }
+        }
+
+        // 全ての実行を終えた時
+        if count == pies.count {
+            // グラフ中央のviewを反映
+            addCenterView(text: totalBalanceText)
         }
     }
 }
