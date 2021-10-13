@@ -19,23 +19,80 @@ class PieChartView: UIView, CAAnimationDelegate {
     private var pies: [Pie] = []
     private var size: CGFloat! // frameの短い辺
     private var radius: CGFloat! // arcPathの半径
-    private var lineWidth: CGFloat! // グラフの線の幅
+    private var basicLineWidth: CGFloat! // グラフの幅
+    private var largerLineWidth: CGFloat! // 拡大時のグラフの幅
+    private var selectedLayer: CAShapeLayer?
+    private var centerSpace: CGFloat! // グラフ中心のスペース
+    private let duration: Double = 0.25 // グラフが表示されるまでの時間
 
+    // MARK: - init
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.backgroundColor = .white
         size = min(frame.width, frame.height)
-        radius = size / 8 * 3
-        lineWidth = size / 4
+        radius = size / 16 * 5
+        basicLineWidth = size / 4
+        largerLineWidth = size / 8 * 3
+        centerSpace = size / 8 * 3
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         size = min(frame.width, frame.height)
-        radius = size / 8 * 3
-        lineWidth = size / 4
+        radius = size / 16 * 5
+        basicLineWidth = size / 4
+        largerLineWidth = size / 8 * 3
+        centerSpace = size / 8 * 3
     }
 
+    // MARK: - touchesBegan
+    // グラフタップ時にグラフを拡大・縮小
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        // タップされたポイントの色を取得
+        let touch = touches.first
+        let point = touch!.location(in: self)
+        let color = colorOfPoint(point: point)
+
+        // 色がグラフのレイヤーと一致すれば拡大・縮小を行う
+        guard let layer = pies.filter({ $0.layer.strokeColor == color }).first?.layer else { return }
+        if layer == selectedLayer {
+            // すでに選択されている時
+            layer.lineWidth = basicLineWidth
+            selectedLayer = nil
+        } else {
+            // 選択されていない時
+            selectedLayer?.lineWidth = basicLineWidth
+            layer.lineWidth = largerLineWidth
+            selectedLayer = layer
+        }
+    }
+
+    // TODO: 深掘りが必要
+    // pointの色を取得する
+    func colorOfPoint(point: CGPoint) -> CGColor {
+        let colorSpace: CGColorSpace = CGColorSpaceCreateDeviceRGB()
+        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue)
+
+        var pixelData: [UInt8] = [0, 0, 0, 0]
+
+        let context = CGContext(data: &pixelData, width: 1, height: 1,bitsPerComponent: 8,
+                                bytesPerRow: 4,space: colorSpace,bitmapInfo: bitmapInfo.rawValue)
+
+        context!.translateBy(x: -point.x, y: -point.y)
+
+        self.layer.render(in: context!)
+
+        let red: CGFloat = CGFloat(pixelData[0]) / CGFloat(255.0)
+        let green: CGFloat = CGFloat(pixelData[1]) / CGFloat(255.0)
+        let blue: CGFloat = CGFloat(pixelData[2]) / CGFloat(255.0)
+        let alpha: CGFloat = CGFloat(pixelData[3]) / CGFloat(255.0)
+
+        let color: UIColor = UIColor(red: red, green: green, blue: blue, alpha: alpha)
+
+        return color.cgColor
+    }
+
+    // MARK: - function
     func setupPieChartView(setData data: [GraphData]) {
         // 初期化の処理
         count = 0
@@ -60,7 +117,7 @@ class PieChartView: UIView, CAAnimationDelegate {
             }
 
             pies.append(
-                Pie(layer: layer, duration: Double(angleRate / 4), label: label)
+                Pie(layer: layer, duration: Double(angleRate * duration), label: label)
             )
             startAngle = angle
         }
@@ -74,10 +131,13 @@ class PieChartView: UIView, CAAnimationDelegate {
             addSubview(label)
         }
 
-        // グラフ中央のラベルを作成
+        // グラフが表示されてから、グラフ中央のviewを反映
         // TODO: NumberFormatterで実装
         let totalString = String.localizedStringWithFormat("%d", totalBalance) + "円"
-        addTotalLabel(text: totalString)
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            guard let self = self else { return }
+            self.addCenterView(text: totalString)
+        }
     }
 
     // 円弧のパスを作成
@@ -98,12 +158,12 @@ class PieChartView: UIView, CAAnimationDelegate {
         let shapeLayer = CAShapeLayer()
         shapeLayer.path = path
         shapeLayer.strokeColor = storokeColor
-        shapeLayer.lineWidth = lineWidth
+        shapeLayer.lineWidth = basicLineWidth
         shapeLayer.fillColor = UIColor.clear.cgColor
         return shapeLayer
     }
 
-    // アニメーションを反映
+    // レイヤーにアニメーションを反映
     private func addCABasicAnimation(layer: CAShapeLayer, duration: CFTimeInterval) {
         let animation = CABasicAnimation(keyPath: #keyPath(CAShapeLayer.strokeEnd))
         animation.duration = duration
@@ -113,20 +173,30 @@ class PieChartView: UIView, CAAnimationDelegate {
         layer.add(animation, forKey: #keyPath(CAShapeLayer.strokeEnd))
     }
 
-    // グラフ中央のTotalラベルを反映
-    private func addTotalLabel(text: String) {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: radius - 10, height: 42))
+    // グラフ中央のViewを反映
+    private func addCenterView(text: String) {
+        // センターの丸いviewを作成
+        let centerView = UIView(frame: CGRect(x: 0, y: 0, width: centerSpace, height: centerSpace))
+        centerView.backgroundColor = .white
+        centerView.layer.cornerRadius = centerSpace / 2
+        centerView.clipsToBounds = true
+        centerView.center = CGPoint(x: size / 2, y: size / 2)
+        // センターに載せるラベルを作成
+        let label = UILabel(
+            frame: CGRect(x: 0, y: 0, width: centerSpace - 10, height: 42)
+        )
         label.textAlignment = NSTextAlignment.center
         label.numberOfLines = 2
         label.font = UIFont.boldSystemFont(ofSize: 17)
         label.text = text
-        label.center = CGPoint(x: size / 2, y: size / 2)
-        addSubview(label)
+        label.center = CGPoint(x: centerSpace / 2, y: centerSpace / 2)
+        centerView.addSubview(label)
+        addSubview(centerView)
     }
 
     // グラフの上に載せるラベルを作成
     private func createCategoryLabel(category: String, balance: Int, startAngle: Double, endAngle: Double) -> UILabel {
-        let label = UILabel(frame: CGRect(x: 0, y: 0, width: lineWidth - 10, height: 51))
+        let label = UILabel(frame: CGRect(x: 0, y: 0, width: basicLineWidth - 10, height: 51))
         label.textAlignment = NSTextAlignment.center
         label.numberOfLines = 3
         label.font = UIFont.boldSystemFont(ofSize: 14)
